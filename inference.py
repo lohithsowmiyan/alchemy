@@ -13,10 +13,15 @@ ollama_model = "llama3.2"  # Replace with the exact model name if different
 # Initialize the ROUGE scorer
 scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
 
-print(dataset)
+dataset = dataset['train'][-1000:]
+
+total_rouge1 = 0.0
+total_rouge2 = 0.0
+total_rougeL = 0.0
+count = 0
 
 # Perform inference and calculate ROUGE-L for each question
-for idx, example in enumerate(dataset['train']):
+for idx, example in enumerate(dataset):
     question = example['query']  # Adjust the key if needed
     ground_truth_answer = example['answer']  # Adjust the key if needed
 
@@ -29,8 +34,15 @@ for idx, example in enumerate(dataset['train']):
 
     # Compute ROUGE-L score
     scores = scorer.score(ground_truth_answer, model_answer)
-    rougeL_score = scores['rougeL'].fmeasure  # ROUGE-L F-measure score
+    total_rouge1 += scores['rouge1'].fmeasure
+    total_rouge2 += scores['rouge2'].fmeasure
+    total_rougeL += scores['rougeL'].fmeasure
+    count += 1
 
-    print(f"Ground Truth Answer: {ground_truth_answer}")
-    print(f"Model Answer: {model_answer}")
-    print(f"ROUGE-L Score: {rougeL_score:.4f}\n")
+avg_rouge1 = total_rouge1 / count
+avg_rouge2 = total_rouge2 / count
+avg_rougeL = total_rougeL / count
+
+print(f"Average ROUGE-1 Score for last 1000 rows: {avg_rouge1:.4f}")
+print(f"Average ROUGE-2 Score for last 1000 rows: {avg_rouge2:.4f}")
+print(f"Average ROUGE-L Score for last 1000 rows: {avg_rougeL:.4f}")
