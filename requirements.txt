@@ -1,0 +1,4 @@
+ollama
+tensorflow-datasets
+rouge-score
+tensorflow
