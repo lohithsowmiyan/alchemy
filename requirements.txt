@@ -1,4 +1,4 @@
 ollama
-tensorflow-datasets
+datasets
 rouge-score
 tensorflow
