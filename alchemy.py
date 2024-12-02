@@ -7,20 +7,19 @@ class AutoRAG:
 
 
     """
-
-    def __init_(self, model_name, dataset, **kwargs): 
+    def __init__(self, model_name, dataset, **kwargs): 
 
         self.model_name = model_name
-        self.dataset = dataset
-
+        self.dataset = load_dataset(dataset)
         self.pipeline = pipeline("text-generation", model_name = model_name, device = 0 if torch.cuda.is_available() else -1)
 
 
-    def __repr__(self):
+    def __repr__(self): 
         return f"{_ for _ in self.keys()}"
 
     # Define the pass@k metric calculation
-    def calculate_pass_at_k(results: List[List[bool]], k: int) -> float:
+    @staticmethod
+    def _calculate_pass_at_k(self, results: list[list[bool]], k: int) -> float:
         """
         Calculate pass@k for a list of results.
         
@@ -40,9 +39,8 @@ class AutoRAG:
         
         return pass_count / num_problems
 
-    
-    # Function to evaluate a single problem
-    def evaluate_problem(problem: dict, k: int = 3) -> List[bool]:
+
+    def _evaluate_problem(self, problem: dict, k: int = 3) -> list[bool]:
         """
         Evaluate a single problem in the HumanEval dataset.
         
@@ -55,10 +53,10 @@ class AutoRAG:
         """
         prompt = problem["prompt"]
         test_code = problem["test"]
-        language = problem["language"]
+        
 
         # Generate k completions
-        completions = generation_pipeline(prompt, num_return_sequences=k, max_length=512, temperature=0.7)
+        completions = self.pipeline(prompt, num_return_sequences=k, max_length=512, temperature=0.7)
 
         results = []
         for completion in completions:
@@ -79,6 +77,28 @@ class AutoRAG:
                 results.append(False)
         
         return results
+
+    def benchmark(self):
+
+        k = 1
+        all_results = []
+        for problem in self.dataset["test"]:
+            results = self._evaluate_problem(problem, k=k)
+            all_results.append(results)
+
+        pass_at_k = self._calculate_pass_at_k(all_results, k=k)
+        print(f"Pass@{k}: {pass_at_k:.4f}")
+
+    
+if __name__ == "__main__":
+
+    auto = AutoRAG(
+        model_name = "EleutherAI/gpt-neo-1.3B",
+        dataset = "openai_humaneval",
+    )
+
+    auto.benchmark()
+
 
 
 
