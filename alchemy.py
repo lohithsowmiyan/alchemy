@@ -11,15 +11,15 @@ class AutoRAG:
 
         self.model_name = model_name
         self.dataset = load_dataset(dataset)
-        self.pipeline = pipeline("text-generation", model_name = model_name, device = 0 if torch.cuda.is_available() else -1)
+        self.pipeline = pipeline("text-generation", model= model_name, device = 0 if torch.cuda.is_available() else -1)
 
 
     def __repr__(self): 
-        return f"{_ for _ in self.keys()}"
+        return f"{_ for _ in self.__dict__.keys()}"
 
     # Define the pass@k metric calculation
     @staticmethod
-    def _calculate_pass_at_k(self, results: list[list[bool]], k: int) -> float:
+    def _calculate_pass_at_k(results: list[list[bool]], k: int) -> float:
         """
         Calculate pass@k for a list of results.
         
@@ -53,10 +53,14 @@ class AutoRAG:
         """
         prompt = problem["prompt"]
         test_code = problem["test"]
+
+        print(prompt)
+
+        print(self.pipeline)               
         
 
         # Generate k completions
-        completions = self.pipeline(prompt, num_return_sequences=k, max_length=512, temperature=0.7)
+        completions = self.pipeline(prompt, num_return_sequences=k, max_new_tokens=200, truncation = True, temperature=0.7)
 
         results = []
         for completion in completions:
@@ -96,6 +100,8 @@ if __name__ == "__main__":
         model_name = "EleutherAI/gpt-neo-1.3B",
         dataset = "openai_humaneval",
     )
+
+    print(auto)
 
     auto.benchmark()
 
