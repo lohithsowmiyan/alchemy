@@ -496,5 +496,7 @@ if __name__ == "__main__":
         the.cli()
         random.seed(the.seed)
         getattr(egs, the.eg, lambda : print(f"ezr: [{the.eg}] unknown."))()
-    d = DATA().adds(csv("data.csv")).chebyshevs()
-    print(d.activeLearning()) 
+    d = DATA().adds(csv("data/humaneval_l1.csv"))
+    print(d) 
+
+
