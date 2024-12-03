@@ -6,3 +6,4 @@ transformers
 python-dotenv
 torch
 tf-keras
+sentence_transformers
