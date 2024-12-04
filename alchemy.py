@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer, util
 import torch
 from datasets import load_dataset
-from transformers import pipeline
+from transformers import pipeline, AutoModel, AutoTokenizer
 import os
 import requests, time
 
@@ -101,7 +101,8 @@ class Retriever:
         # Store chunks and their embeddings
         for chunk in chunks:
             inputs = self.tokenizer(chunk, return_tensors="pt", truncation=True, padding=True)
-            outputs = self.model(**inputs)
+            #print(inputs)
+            outputs = self.model.encoder(**inputs)
             embedding = self.mean_pooling(outputs, inputs['attention_mask'])
             self.knowledge_base[chunk] = embedding.detach()
 
@@ -117,7 +118,7 @@ class Retriever:
             List[str]: The top-k relevant chunks.
         """
         inputs = self.tokenizer(query, return_tensors="pt", truncation=True, padding=True)
-        query_embedding = self.mean_pooling(self.model(**inputs), inputs['attention_mask'])
+        query_embedding = self.mean_pooling(self.model.encoder(**inputs), inputs['attention_mask'])
 
         scores = {
             chunk: util.pytorch_cos_sim(query_embedding, emb).item()
@@ -128,9 +129,6 @@ class Retriever:
         top_chunks = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)[:k]
         return top_chunks
 
-
-    
-
     
 
 class AutoRAG:
@@ -138,12 +136,13 @@ class AutoRAG:
     A class for Retrieval-Augmented Generation using a specified model and dataset.
     """
 
-    def __init__(self, model_name, dataset, rag = False,embedding_model='all-MiniLM-L6-v2', **kwargs): 
+    def __init__(self, model_name, dataset, rag = True,embedding_model= 'Salesforce/codet5-base', **kwargs): 
         self.model_name = model_name
         self.dataset = load_dataset(dataset)
         self.pipeline = pipeline("text-generation", model=model_name, device=0 if torch.cuda.is_available() else -1)
-        self.embedding_model = SentenceTransformer(embedding_model)
-        self.knowledge_base = {}  # To store chunks and their embeddings
+        self.retriever = Retriever(
+            model_name = embedding_model
+        )
         self.rag = rag
 
     def __repr__(self): 
@@ -168,7 +167,7 @@ class AutoRAG:
 
         # Retrieve top-k relevant chunks
         if self.rag:
-            retrieved_chunks = self.retrieve_top_k_chunks(prompt, k=k)
+            retrieved_chunks = self.retriever.retrieve_top_k_chunks(prompt, k=k)
             context = "\n".join(retrieved_chunks)
 
             # Augment the prompt with retrieved context
@@ -204,11 +203,11 @@ class AutoRAG:
         """
 
         if self.rag:
-            repo_url = 'akantuni/Kattis'
+            repo_url = 'akantuni/Kattis' #, 'haoel/leetcode'
             if repo_url:
                 print(f"Processing GitHub repository from {repo_url}...")
-                self.chunk_github_repo(repo_url)
-                print(f"Repository content stored in knowledge base. Total chunks: {len(self.knowledge_base)}")
+                self.retriever.chunk_github_repo(repo_url)
+                #print(f"Repository content stored in knowledge base. Total chunks: {len(self.knowledge_base)}")
         k = 1
         all_results = []
         for problem in self.dataset["test"]:
