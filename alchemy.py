@@ -28,10 +28,22 @@ def crawl_github_repo(url,is_sub_dir):
             files.append(item['html_url'])
         elif item['type'] == 'dir' and not item['name'].startswith("."):
             sub_files = crawl_github_repo(item['url'],True)
-            time.sleep(.1)
+            time.sleep(6)
             files.extend(sub_files)
+    print(files)
 
     return files
+
+def crawl_multiple_repos(urls):
+    all_files = []
+    for url in urls:
+        try:
+            print(f"Crawling repo: {url}")
+            repo_files = crawl_github_repo(url, False)
+            all_files.extend(repo_files)
+        except Exception as e:
+            print(f"Error while crawling {url}: {e}")
+    return all_files
 
 def extract_python_code_from_py(github_url):
     raw_url = github_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
@@ -79,7 +91,7 @@ class Retriever:
             input_mask_expanded.sum(1), min=1e-9
         )
 
-    def chunk_github_repo(self, GITHUB_REPO, chunk_size=200):
+    def chunk_github_repo(self, GITHUB_REPOS, chunk_size=200):
         """
         Clone and chunk the content of a GitHub repository.
 
@@ -89,7 +101,7 @@ class Retriever:
         """
         GITHUB_TOKEN = "github_token_here"
         # Example for downloading raw files (you can expand this to clone a full repo)
-        code_files_urls = crawl_github_repo(GITHUB_REPO, False)
+        code_files_urls = crawl_multiple_repos(GITHUB_REPOS)
 
         chunks = []
 
@@ -203,19 +215,22 @@ class AutoRAG:
         """
 
         if self.rag:
-            repo_url = 'akantuni/Kattis' #, 'haoel/leetcode'
+            repo_url = [ 'haoel/leetcode'] #, 'haoel/leetcode'
             if repo_url:
                 print(f"Processing GitHub repository from {repo_url}...")
                 self.retriever.chunk_github_repo(repo_url)
+         
                 #print(f"Repository content stored in knowledge base. Total chunks: {len(self.knowledge_base)}")
         k = 1
         all_results = []
+        '''
         for problem in self.dataset["test"]:
             results = self._evaluate_problem(problem, k=k)
             all_results.append(results)
 
         pass_at_k = self._calculate_pass_at_k(all_results, k=k)
         print(f"Pass@{k}: {pass_at_k:.4f}")
+        '''
 
     @staticmethod
     def _calculate_pass_at_k(results: list[list[bool]], k: int) -> float:
